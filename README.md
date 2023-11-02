@@ -1,130 +1,166 @@
 # xingchen-java-client
 
 xingchen 开放接口定义
+- API 版本: v2
 
-- API version: v1
-
-- Build date: 2023-08-07T18:25:55.099817+08:00[Asia/Shanghai]
-
-
-## Requirements
-
-Building the API client library requires:
+## 运行/编译
 
 1. Java 1.8+
 2. Maven/Gradle
 
-## Installation
+## 安装
 
-To install the API client library to your local Maven repository, simply execute:
+### Maven 用户
 
-```shell
-mvn clean install
-```
-
-To deploy it to a remote Maven repository instead, configure the settings of the repository and execute:
-
-```shell
-mvn clean deploy
-```
-
-Refer to the [OSSRH Guide](http://central.sonatype.org/pages/ossrh-guide.html) for more information.
-
-### Maven users
-
-Add this dependency to your project's POM:
+添加依赖到POM:
 
 ```xml
 <dependency>
   <groupId>com.alibaba.xingchen</groupId>
   <artifactId>xingchen-java-client</artifactId>
-  <version>1.0.0-SNAPSHOT</version>
+  <version>1.0.2</version>
   <scope>compile</scope>
 </dependency>
 ```
 
-### Gradle users
+### Gradle用户
 
-Add this dependency to your project's build file:
+添加依赖到项目构建文件:
 
 ```groovy
-compile "com.alibaba.xingchen:xingchen-java-client:1.0.0-SNAPSHOT"
+compile "com.alibaba.xingchen:xingchen-java-client:1.0.2"
 ```
 
-### Others
+### 编译/打包
 
-At first generate the JAR by executing:
+构建jar包:
 
 ```shell
 mvn clean package
 ```
 
-Then manually install the following JARs:
+执行完后会生成以下JARs:
 
-- `target/xingchen-java-client-1.0.0-SNAPSHOT.jar`
+- `target/xingchen-java-client-1.0.2.jar`
 - `target/lib/*.jar`
 
-## Getting Started
-
-Please follow the [installation](#installation) instruction and execute the following Java code:
+## 快速开始
 
 ```java
 
-import com.alibaba.xingchen.*;
-import com.alibaba.xingchen.auth.*;
+package example;
+
+import com.alibaba.xingchen.ApiClient;
+import com.alibaba.xingchen.ApiException;
+import com.alibaba.xingchen.api.ChatApiSub;
+import com.alibaba.xingchen.auth.HttpBearerAuth;
 import com.alibaba.xingchen.model.*;
-import com.alibaba.xingchen.api.CharacterApiSub;
+import io.reactivex.Flowable;
 
-public class CharacterApiSubExample {
+import java.util.Arrays;
 
-    public static void main(String[] args) {
-        ApiClient defaultClient = Configuration.getDefaultApiClient();
-        defaultClient.setBasePath("http://localhost");
-        
-        // Configure HTTP bearer authorization: Authorization
-        HttpBearerAuth Authorization = (HttpBearerAuth) defaultClient.getAuthentication("Authorization");
-        Authorization.setBearerToken("BEARER TOKEN");
+public class ChatApiSseExample {
 
-        CharacterApiSub apiInstance = new CharacterApiSub(defaultClient);
-        String characterId = "characterId_example"; // String | 角色ID
-        Integer version = 56; // Integer | 角色版本
-        try {
-            ResultDTOCharacterDTO result = apiInstance.characterDetails(characterId, version);
-            System.out.println(result);
-        } catch (ApiException e) {
-            System.err.println("Exception when calling CharacterApiSub#characterDetails");
-            System.err.println("Status code: " + e.getCode());
-            System.err.println("Reason: " + e.getResponseBody());
-            System.err.println("Response headers: " + e.getResponseHeaders());
-            e.printStackTrace();
-        }
+    public static void main(String[] args) throws ApiException {
+        ChatApiSub api = new ChatApiSub();
+        ApiClient apiClient = new ApiClient();
+        apiClient.setBasePath("https://nlp.aliyuncs.com");
+        apiClient.addDefaultHeader("X-DashScope-SSE", "enable");
+
+        // 配置API-KEY，可通过通义星尘官网生成 https://tongyi.aliyun.com/xingchen
+        HttpBearerAuth authorization = (HttpBearerAuth) apiClient.getAuthentication("Authorization");
+        authorization.setBearerToken("xxx");
+        api.setApiClient(apiClient);
+
+        Flowable<ChatResult> response =  api.streamOut(buildChatReqParams());
+
+        response.blockingForEach(message -> {
+            System.out.println(message.getChoices().get(0).getMessages().get(0).getContent());
+        });
+    }
+
+    private static ChatReqParams buildChatReqParams() {
+        return ChatReqParams.builder()
+                .botProfile(
+                        CharacterKey.builder()
+                                // 星尘预制角色
+                                .characterId("40f70d5466e1429ba9aa755842b35d9f")
+                                .version(1)
+                                .build()
+                )
+                .modelParameters(
+                        ModelParameters.builder()
+                                .seed(1683806810L)
+                                .topP(0.8)
+                                .topK(100)
+                                .maxLength(100)
+                                .temperature(0.8)
+                                .modelName("qwen-spark-v3")
+                                .build()
+                )
+                .userProfile(
+                        UserProfile.builder()
+                                .userId("1234")
+                                .build()
+                )
+                .messages(
+                        Arrays.asList(
+                                Message.builder()
+                                        .name("小明")
+                                        .content("你叫什么名字?")
+                                        .role("user")
+                                        .build(),
+                                Message.builder()
+                                        .name("小婉")
+                                        .content("我叫小婉啊。")
+                                        .role("assistant")
+                                        .build(),
+                                Message.builder()
+                                        .name("小明")
+                                        .content("你今年多大?")
+                                        .role("user")
+                                        .build(),
+                                Message.builder()
+                                        .name("小婉")
+                                        .content("我今年17岁了。")
+                                        .role("assistant")
+                                        .build(),
+                                // 注意，自定义角色 prompt，用户问题需放到messages最后一条
+                                Message.builder()
+                                        .name("小明")
+                                        .content("你今年多大?")
+                                        .role("user")
+                                        .build()
+                        )
+                )
+                .build();
     }
 }
 
+
 ```
 
-## Documentation for API Endpoints
+## API 接口列表
 
-All URIs are relative to *http://localhost*
+请求HOST *https://nlp.aliyuncs.com*
 
-Class | Method | HTTP request | Description
------------- | ------------- | ------------- | -------------
-*CharacterApiSub* | [**characterDetails**](docs/CharacterApiSub.md#characterDetails) | **GET** /v1/api/character/details | 角色详情
-*CharacterApiSub* | [**create**](docs/CharacterApiSub.md#create) | **POST** /v1/api/character/create | 创建角色
-*CharacterApiSub* | [**createOrUpdateVersion**](docs/CharacterApiSub.md#createOrUpdateVersion) | **PUT** /v1/api/character/createOrUpdateVersion | 创建或更新角色版本
-*CharacterApiSub* | [**delete**](docs/CharacterApiSub.md#delete) | **DELETE** /v1/api/character/delete | 删除角色
-*CharacterApiSub* | [**listCharacterVersions**](docs/CharacterApiSub.md#listCharacterVersions) | **GET** /v1/api/character/versions/{characterId} | 角色版本列表
-*CharacterApiSub* | [**recommendCharacterVersion**](docs/CharacterApiSub.md#recommendCharacterVersion) | **GET** /v1/api/character/newversion/recommend/{characterId} | 角色版本列表
-*CharacterApiSub* | [**search**](docs/CharacterApiSub.md#search) | **POST** /v1/api/character/search | 查询角色
-*CharacterApiSub* | [**update**](docs/CharacterApiSub.md#update) | **PUT** /v1/api/character/update | 更新角色信息
-*ChatApiSub* | [**example**](docs/ChatApiSub.md#chat) | **POST** /v1/api/example/send | 用户对话
-*ChatMessageApiSub* | [**chatHistories**](docs/ChatMessageApiSub.md#chatHistories) | **POST** /v1/api/example/message/histories | 对话历史
-*ChatMessageApiSub* | [**chatHistories1**](docs/ChatMessageApiSub.md#chatHistories1) | **GET** /v1/api/example/history/{characterId} | 对话历史
-*ChatMessageApiSub* | [**rateMessage**](docs/ChatMessageApiSub.md#rateMessage) | **POST** /v1/api/example/rating | 消息评分
-*ChatMessageApiSub* | [**sysReminder**](docs/ChatMessageApiSub.md#sysReminder) | **POST** /v1/api/example/reminder | 
+Class | Method | HTTP request                                                 | Description
+------------ | ------------- |--------------------------------------------------------------| -------------
+*CharacterApiSub* | [**characterDetails**](docs/CharacterApiSub.md#characterDetails) | **GET** /v2/api/character/details                            | 角色详情
+*CharacterApiSub* | [**create**](docs/CharacterApiSub.md#create) | **POST** /v2/api/character/create                            | 创建角色
+*CharacterApiSub* | [**createOrUpdateVersion**](docs/CharacterApiSub.md#createOrUpdateVersion) | **PUT** /v2/api/character/createOrUpdateVersion              | 创建或更新角色版本
+*CharacterApiSub* | [**delete**](docs/CharacterApiSub.md#delete) | **DELETE** /v2/api/character/delete                          | 删除角色
+*CharacterApiSub* | [**listCharacterVersions**](docs/CharacterApiSub.md#listCharacterVersions) | **GET** /v2/api/character/versions/{characterId}             | 角色版本列表
+*CharacterApiSub* | [**recommendCharacterVersion**](docs/CharacterApiSub.md#recommendCharacterVersion) | **GET** /v2/api/character/newversion/recommend/{characterId} | 角色版本列表
+*CharacterApiSub* | [**search**](docs/CharacterApiSub.md#search) | **POST** /v2/api/character/search                            | 查询角色
+*CharacterApiSub* | [**update**](docs/CharacterApiSub.md#update) | **PUT** /v2/api/character/update                             | 更新角色信息
+*ChatApiSub* | [**example**](docs/ChatApiSub.md#chat) | **POST** /v2/api/example/send                                | 用户对话
+*ChatMessageApiSub* | [**chatHistories**](docs/ChatMessageApiSub.md#chatHistories) | **POST** /v2/api/example/message/histories                   | 对话历史
+*ChatMessageApiSub* | [**rateMessage**](docs/ChatMessageApiSub.md#rateMessage) | **POST** /v2/api/example/rating                              | 消息评分
+*ChatMessageApiSub* | [**sysReminder**](docs/ChatMessageApiSub.md#sysReminder) | **POST** /v2/api/example/reminder                            | 
 
 
-## Documentation for Models
+## 接口请求参数对象列表
 
  - [AdvancedSettings](docs/AdvancedSettings.md)
  - [CharacterAdvancedConfig](docs/CharacterAdvancedConfig.md)
@@ -163,22 +199,3 @@ Class | Method | HTTP request | Description
  - [SysReminderRequest](docs/SysReminderRequest.md)
  - [Usage](docs/Usage.md)
  - [UserProfile](docs/UserProfile.md)
-
-
-## Documentation for Authorization
-
-Authentication schemes defined for the API:
-### Authorization
-
-
-- **Type**: HTTP basic authentication
-
-
-## Recommendation
-
-It's recommended to create an instance of `ApiClient` per thread in a multithreaded environment to avoid any potential issues.
-
-## Author
-
-
-

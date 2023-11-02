@@ -6,7 +6,7 @@ import com.alibaba.xingchen.auth.HttpBearerAuth;
  * @date 2023/9/27 5:46 PM
  */
 public class TestBaseV2 {
-    public static String baseUrl = "xxx";
+    public static String baseUrl = "https://nlp.aliyuncs.com";
 
     public ApiClient initClient() {
 

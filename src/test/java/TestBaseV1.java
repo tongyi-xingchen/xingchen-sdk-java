@@ -17,10 +17,7 @@ import java.util.Map;
  * @date 2023/9/27 5:46 PM
  */
 public class TestBaseV1 {
-    public static String baseUrl = "https://pre-xingchen.aliyun.com";
-//    public static String baseUrl = "http://xingchen.aliyun.test";
-    public static Version version = Version.v1;
-
+    public static String baseUrl = "https://xingchen.aliyun.com";
     public ApiClient initClient() {
         OkHttpClient client = new OkHttpClient.Builder().build();
         String bearer = null;
